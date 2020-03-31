@@ -37,10 +37,9 @@ void StreamServerComponent::cleanup() {
 }
 
 void StreamServerComponent::read() {
-    int len;
-    while ((len = this->stream_->available()) > 0) {
-        char *buf = new char[len];
-        size_t read = this->stream_->readBytes(buf, len);
+    while ((int len = this->stream_->available()) > 0) {
+        char buf[128];
+        size_t read = this->stream_->readBytes(buf, min(len, 128));
         for (auto const& client : this->clients_)
             client->tcp_client->write(buf, read);
     }
