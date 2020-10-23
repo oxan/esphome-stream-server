@@ -22,7 +22,12 @@
 #include <string>
 #include <vector>
 #include <Stream.h>
+
+#ifdef ARDUINO_ARCH_ESP8266
 #include <ESPAsyncTCP.h>
+#else
+#include <AsyncTCP.h>
+#endif
 
 class StreamServerComponent : public esphome::Component {
 public:
