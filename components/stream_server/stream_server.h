@@ -17,6 +17,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/components/uart/uart.h"
 
 #include <memory>
 #include <string>
@@ -31,7 +32,9 @@
 
 class StreamServerComponent : public esphome::Component {
 public:
+    StreamServerComponent() = default;
     explicit StreamServerComponent(Stream *stream) : stream_{stream} {}
+    void set_uart_parent(esphome::uart::UARTComponent *parent) { this->stream_ = parent; }
 
     void setup() override;
     void loop() override;
