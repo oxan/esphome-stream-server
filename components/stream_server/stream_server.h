@@ -48,6 +48,7 @@ public:
 protected:
     void cleanup();
     void read();
+    bool flush();
     void write();
 
     struct Client {
@@ -62,6 +63,8 @@ protected:
     Stream *stream_{nullptr};
     AsyncServer server_{0};
     uint16_t port_{6638};
+    std::vector<char> send_buf_{};
+    int send_client_{0};
     std::vector<uint8_t> recv_buf_{};
     std::vector<std::unique_ptr<Client>> clients_{};
 };
