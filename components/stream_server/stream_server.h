@@ -16,13 +16,18 @@
 
 #pragma once
 
+#include "esphome/core/version.h"
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 
 #include <memory>
 #include <string>
 #include <vector>
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+#include <Arduino.h>
+#else
 #include <Stream.h>
+#endif
 
 #ifdef ARDUINO_ARCH_ESP8266
 #include <ESPAsyncTCP.h>
@@ -30,10 +35,16 @@
 #include <AsyncTCP.h>
 #endif
 
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+using SSStream = esphome::uart::UARTComponent;
+#else
+using SSStream = Stream;
+#endif
+
 class StreamServerComponent : public esphome::Component {
 public:
     StreamServerComponent() = default;
-    explicit StreamServerComponent(Stream *stream) : stream_{stream} {}
+    explicit StreamServerComponent(SSStream *stream) : stream_{stream} {}
     void set_uart_parent(esphome::uart::UARTComponent *parent) { this->stream_ = parent; }
 
     void setup() override;
@@ -59,7 +70,7 @@ protected:
         bool disconnected{false};
     };
 
-    Stream *stream_{nullptr};
+    SSStream *stream_{nullptr};
     AsyncServer server_{0};
     uint16_t port_{6638};
     std::vector<uint8_t> recv_buf_{};

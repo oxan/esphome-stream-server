@@ -18,6 +18,10 @@
 
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+#include "esphome/components/network/util.h"
+#endif
+
 
 static const char *TAG = "streamserver";
 
@@ -56,23 +60,39 @@ void StreamServerComponent::read() {
     int len;
     while ((len = this->stream_->available()) > 0) {
         char buf[128];
-        size_t read = this->stream_->readBytes(buf, min(len, 128));
+        len = min(len, 128);
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+        this->stream_->read_array(reinterpret_cast<uint8_t*>(buf), len);
+#else
+        this->stream_->readBytes(buf, len);
+#endif
         for (auto const& client : this->clients_)
-            client->tcp_client->write(buf, read);
+            client->tcp_client->write(buf, len);
     }
 }
 
 void StreamServerComponent::write() {
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+    this->stream_->write_array(this->recv_buf_);
+    this->recv_buf_.clear();
+#else
     size_t len;
     while ((len = this->recv_buf_.size()) > 0) {
         this->stream_->write(this->recv_buf_.data(), len);
         this->recv_buf_.erase(this->recv_buf_.begin(), this->recv_buf_.begin() + len);
     }
+#endif
 }
 
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", network_get_address().c_str(), this->port_);
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u",
+#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+                  esphome::network::get_ip_address().str().c_str(),
+#else
+                  network_get_address().c_str(),
+#endif
+                  this->port_);
 }
 
 void StreamServerComponent::on_shutdown() {
