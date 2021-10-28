@@ -22,7 +22,7 @@
 
 // Provide VERSION_CODE for ESPHome versions lacking it, as existence checking doesn't work for function-like macros
 #ifndef VERSION_CODE
-#define VERSION_CODE(major, minor, patch) ((major << 16) | (minor << 8) | path)
+#define VERSION_CODE(major, minor, patch) ((major) << 16 | (minor) << 8 | (patch))
 #endif
 
 #include <memory>
