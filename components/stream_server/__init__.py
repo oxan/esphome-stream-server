@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import re
-
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart
@@ -22,12 +20,9 @@ from esphome.const import CONF_ID, CONF_PORT, __version__
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
-version = sum(int(v) << s for s, v in zip([16, 8, 0], re.match(r"^(\d+)\.(\d+).(\d+)-?\w*$", __version__).groups()))
+AUTO_LOAD = ["async_tcp"]
 
-if version >= (2021 << 16 | 10 << 8 | 0):  # VERSION_CODE(2021, 10, 0)
-    AUTO_LOAD = ["async_tcp", "network"]
-
-DEPENDENCIES = ["uart"]
+DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
