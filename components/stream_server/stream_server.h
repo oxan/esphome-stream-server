@@ -20,10 +20,15 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 
+// Provide VERSION_CODE for ESPHome versions lacking it, as existence checking doesn't work for function-like macros
+#ifndef VERSION_CODE
+#define VERSION_CODE(major, minor, patch) ((major << 16) | (minor << 8) | path)
+#endif
+
 #include <memory>
 #include <string>
 #include <vector>
-#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0)
 #include <Arduino.h>
 #else
 #include <Stream.h>
@@ -35,7 +40,7 @@
 #include <AsyncTCP.h>
 #endif
 
-#if defined(ESPHOME_VERSION_CODE) && (ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0))
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0)
 using SSStream = esphome::uart::UARTComponent;
 #else
 using SSStream = Stream;
