@@ -28,15 +28,13 @@
 #include <memory>
 #include <string>
 #include <vector>
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0)
-#include <Arduino.h>
-#else
 #include <Stream.h>
-#endif
 
 #ifdef ARDUINO_ARCH_ESP8266
 #include <ESPAsyncTCP.h>
 #else
+// AsyncTCP.h includes parts of freertos, which require FreeRTOS.h header to be included first
+#include <freertos/FreeRTOS.h>
 #include <AsyncTCP.h>
 #endif
 
