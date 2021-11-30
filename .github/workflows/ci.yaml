@@ -162,7 +162,7 @@ jobs:
         run: 'echo -e "wifi_ssid: ssid\nwifi_password: password" > secrets.yaml'
       - run: |
           sed -i 's#source: github://oxan/esphome-stream-server#source: components#' example.yaml
-          esphome config esp32-example.yaml
+          esphome config example.yaml
 
   esphome-compile:
     runs-on: ubuntu-latest
