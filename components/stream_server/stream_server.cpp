@@ -23,9 +23,10 @@
 #include "esphome/components/network/util.h"
 #endif
 
-static const char *const TAG = "streamserver";
+namespace esphome {
+namespace stream_server {
 
-using namespace esphome;
+static const char *const TAG = "stream_server";
 
 void StreamServerComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up stream server...");
@@ -122,3 +123,6 @@ StreamServerComponent::Client::Client(AsyncClient *client, std::vector<uint8_t> 
 }
 
 StreamServerComponent::Client::~Client() { delete this->tcp_client; }
+
+}  // namespace stream_server
+}  // namespace esphome

@@ -38,6 +38,9 @@
 #include <AsyncTCP.h>
 #endif
 
+namespace esphome {
+namespace stream_server {
+
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0)
 using SSStream = esphome::uart::UARTComponent;
 #else
@@ -79,3 +82,6 @@ class StreamServerComponent : public esphome::Component {
   std::vector<uint8_t> recv_buf_{};
   std::vector<std::unique_ptr<Client>> clients_{};
 };
+
+}  // namespace stream_server
+}  // namespace esphome
