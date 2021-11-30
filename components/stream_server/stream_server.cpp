@@ -39,7 +39,7 @@ void StreamServerComponent::setup() {
         if (tcp_client == nullptr)
           return;
 
-        this->clients_.push_back(std::unique_ptr<Client>(new Client(tcp_client, this->recv_buf_)));
+        this->clients_.push_back(make_unique<Client>(tcp_client, this->recv_buf_));
       },
       this);
 }
