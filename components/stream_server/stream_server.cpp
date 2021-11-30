@@ -23,7 +23,7 @@
 #include "esphome/components/network/util.h"
 #endif
 
-static const char *TAG = "streamserver";
+static const char *const TAG = "streamserver";
 
 using namespace esphome;
 
