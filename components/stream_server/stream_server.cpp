@@ -70,7 +70,7 @@ void StreamServerComponent::read_() {
     this->stream_->readBytes(buf, len);
 #endif
     for (auto const &client : this->clients_)
-      client->tcp_client->write_(buf, len);
+      client->tcp_client->write(buf, len);
   }
 }
 
@@ -81,7 +81,7 @@ void StreamServerComponent::write_() {
 #else
   size_t len;
   while ((len = this->recv_buf_.size()) > 0) {
-    this->stream_->write_(this->recv_buf_.data(), len);
+    this->stream_->write(this->recv_buf_.data(), len);
     this->recv_buf_.erase(this->recv_buf_.begin(), this->recv_buf_.begin() + len);
   }
 #endif
