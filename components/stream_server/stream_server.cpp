@@ -44,12 +44,12 @@ void StreamServerComponent::setup() {
 }
 
 void StreamServerComponent::loop() {
-  this->cleanup();
-  this->read();
-  this->write();
+  this->cleanup_();
+  this->read_();
+  this->write_();
 }
 
-void StreamServerComponent::cleanup() {
+void StreamServerComponent::cleanup_() {
   auto discriminator = [](std::unique_ptr<Client> &client) { return !client->disconnected; };
   auto last_client = std::partition(this->clients_.begin(), this->clients_.end(), discriminator);
   for (auto it = last_client; it != this->clients_.end(); it++)
@@ -58,7 +58,7 @@ void StreamServerComponent::cleanup() {
   this->clients_.erase(last_client, this->clients_.end());
 }
 
-void StreamServerComponent::read() {
+void StreamServerComponent::read_() {
   int len;
   while ((len = this->stream_->available()) > 0) {
     char buf[128];
@@ -69,18 +69,18 @@ void StreamServerComponent::read() {
     this->stream_->readBytes(buf, len);
 #endif
     for (auto const &client : this->clients_)
-      client->tcp_client->write(buf, len);
+      client->tcp_client->write_(buf, len);
   }
 }
 
-void StreamServerComponent::write() {
+void StreamServerComponent::write_() {
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2021, 10, 0)
   this->stream_->write_array(this->recv_buf_);
   this->recv_buf_.clear();
 #else
   size_t len;
   while ((len = this->recv_buf_.size()) > 0) {
-    this->stream_->write(this->recv_buf_.data(), len);
+    this->stream_->write_(this->recv_buf_.data(), len);
     this->recv_buf_.erase(this->recv_buf_.begin(), this->recv_buf_.begin() + len);
   }
 #endif

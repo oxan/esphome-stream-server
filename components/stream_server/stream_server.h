@@ -60,9 +60,9 @@ class StreamServerComponent : public esphome::Component {
   void set_port(uint16_t port) { this->port_ = port; }
 
  protected:
-  void cleanup();
-  void read();
-  void write();
+  void cleanup_();
+  void read_();
+  void write_();
 
   struct Client {
     Client(AsyncClient *client, std::vector<uint8_t> &recv_buf);
