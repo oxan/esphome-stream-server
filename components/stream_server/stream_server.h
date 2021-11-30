@@ -30,7 +30,7 @@
 #include <vector>
 #include <Stream.h>
 
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef USE_ESP8266
 #include <ESPAsyncTCP.h>
 #else
 // AsyncTCP.h includes parts of freertos, which require FreeRTOS.h header to be included first
