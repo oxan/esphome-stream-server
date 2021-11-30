@@ -35,11 +35,11 @@ void StreamServerComponent::setup() {
   this->server_ = AsyncServer(this->port_);
   this->server_.begin();
   this->server_.onClient(
-      [this](void *h, AsyncClient *tcpClient) {
-        if (tcpClient == nullptr)
+      [this](void *h, AsyncClient *tcp_client) {
+        if (tcp_client == nullptr)
           return;
 
-        this->clients_.push_back(std::unique_ptr<Client>(new Client(tcpClient, this->recv_buf_)));
+        this->clients_.push_back(std::unique_ptr<Client>(new Client(tcp_client, this->recv_buf_)));
       },
       this);
 }
