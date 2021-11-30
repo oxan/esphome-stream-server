@@ -27,7 +27,7 @@ DEPENDENCIES = ["uart", "network"]
 MULTI_CONF = True
 
 stream_server_ns = cg.esphome_ns.namespace("stream_server")
-StreamServerComponent = stream_server_ns.class_("StreamServer", cg.Component)
+StreamServerComponent = stream_server_ns.class_("StreamServer", cg.Component, uart.UARTDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(

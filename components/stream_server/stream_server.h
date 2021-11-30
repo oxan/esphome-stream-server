@@ -47,7 +47,7 @@ using SSStream = esphome::uart::UARTComponent;
 using SSStream = Stream;
 #endif
 
-class StreamServerComponent : public esphome::Component {
+class StreamServerComponent : public uart::UARTDevice, public Component {
  public:
   StreamServerComponent() = default;
   explicit StreamServerComponent(SSStream *stream) : stream_{stream} {}
