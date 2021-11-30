@@ -122,7 +122,7 @@ jobs:
           git config user.name "ci"
           git config user.email "ci@github.com"
           git add .
-          git commit -a -m "Add modbus_solax and solax_x1"
+          git commit -a -m "Add external component"
         working-directory: ${{ env.esphome_directory }}
 
       - name: Set up python environment
