@@ -26,7 +26,8 @@ DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
-StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
+stream_server_ns = cg.esphome_ns.namespace("stream_server")
+StreamServerComponent = stream_server_ns.class_("StreamServer", cg.Component)
 
 CONFIG_SCHEMA = (
     cv.Schema(
