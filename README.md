@@ -30,3 +30,13 @@ stream_server:
    uart_id: uart_bus
    port: 1234
 ```
+
+You can optionally create a `binary_sensor` to indicate whether a client is currently connected.
+
+```yaml
+stream_server:
+  id: ss
+
+binary_sensor:
+  - platform: stream_server
+	  stream_server: ss
