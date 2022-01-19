@@ -23,12 +23,11 @@ from esphome.const import (
     CONF_ENTITY_CATEGORY,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
-from . import StreamServerComponent
+from . import ns, StreamServerComponent
 
 CONF_STREAM_SERVER = "stream_server"
 
-ns = binary_sensor.binary_sensor_ns
-class_ = ns.class_("BinarySensor", binary_sensor.BinarySensor, cg.Component)
+class_ = ns.class_("StreamServerBinarySensor", binary_sensor.BinarySensor, cg.Component)
 
 CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
     {
@@ -41,7 +40,8 @@ CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
 
 def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
+    yield cg.register_component(var, config)
     yield binary_sensor.register_binary_sensor(var, config)
-    
+
     ss = yield cg.get_variable(config[CONF_STREAM_SERVER])
-    cg.add(ss.register_connection_sensor(var))
+    cg.add(var.set_stream_server(ss))

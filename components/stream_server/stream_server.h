@@ -19,7 +19,6 @@
 #include "esphome/core/version.h"
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
-#include "esphome/components/binary_sensor/binary_sensor.h"
 
 // Provide VERSION_CODE for ESPHome versions lacking it, as existence checking doesn't work for function-like macros
 #ifndef VERSION_CODE
@@ -59,13 +58,12 @@ public:
     float get_setup_priority() const override { return esphome::setup_priority::AFTER_WIFI; }
 
     void set_port(uint16_t port) { this->port_ = port; }
-    void register_connection_sensor(esphome::binary_sensor::BinarySensor *connection_sensor) {this->connection_sensor_ = connection_sensor; }
+    int get_client_count() { return this->clients_.size(); }
 
 protected:
     void cleanup();
     void read();
     void write();
-    void update_connection_sensor();
 
     struct Client {
         Client(AsyncClient *client, std::vector<uint8_t> &recv_buf);
@@ -81,5 +79,4 @@ protected:
     uint16_t port_{6638};
     std::vector<uint8_t> recv_buf_{};
     std::vector<std::unique_ptr<Client>> clients_{};
-    esphome::binary_sensor::BinarySensor* connection_sensor_;
 };

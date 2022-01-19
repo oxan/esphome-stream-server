@@ -44,7 +44,6 @@ void StreamServerComponent::setup() {
 
 void StreamServerComponent::loop() {
     this->cleanup();
-    this->update_connection_sensor();
     this->read();
     this->write();
 }
@@ -56,12 +55,6 @@ void StreamServerComponent::cleanup() {
         ESP_LOGD(TAG, "Client %s disconnected", (*it)->identifier.c_str());
 
     this->clients_.erase(last_client, this->clients_.end());
-}
-
-void StreamServerComponent::update_connection_sensor() {
-    if (this->connection_sensor_ != nullptr) {
-        this->connection_sensor_->publish_state(this->clients_.size() > 0);
-    }
 }
 
 void StreamServerComponent::read() {

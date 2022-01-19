@@ -20,13 +20,14 @@ from esphome.const import CONF_ID, CONF_PORT
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
-AUTO_LOAD = ["async_tcp", "binary_sensor"]
+AUTO_LOAD = ["async_tcp"]
 
 DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
-StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
+ns = cg.global_ns
+StreamServerComponent = ns.class_("StreamServerComponent", cg.Component)
 
 CONFIG_SCHEMA = (
 	cv.Schema(

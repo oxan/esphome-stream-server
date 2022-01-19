@@ -39,4 +39,5 @@ stream_server:
 
 binary_sensor:
   - platform: stream_server
-	  stream_server: ss
+    stream_server: ss
+```
