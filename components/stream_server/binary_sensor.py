@@ -17,11 +17,11 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
 from esphome.const import (
-    CONF_ID,
-    CONF_DEVICE_CLASS,
-    DEVICE_CLASS_CONNECTIVITY,
-    CONF_ENTITY_CATEGORY,
-    ENTITY_CATEGORY_DIAGNOSTIC,
+	CONF_ID,
+	CONF_DEVICE_CLASS,
+	DEVICE_CLASS_CONNECTIVITY,
+	CONF_ENTITY_CATEGORY,
+	ENTITY_CATEGORY_DIAGNOSTIC,
 )
 from . import ns, StreamServerComponent
 
@@ -30,18 +30,18 @@ CONF_STREAM_SERVER = "stream_server"
 class_ = ns.class_("StreamServerBinarySensor", binary_sensor.BinarySensor, cg.Component)
 
 CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
-    {
-        cv.GenerateID(): cv.declare_id(class_),
-        cv.Required(CONF_STREAM_SERVER): cv.use_id(StreamServerComponent),
-        cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_CONNECTIVITY): binary_sensor.device_class,
-        cv.Optional(CONF_ENTITY_CATEGORY, default=ENTITY_CATEGORY_DIAGNOSTIC): cv.entity_category,
-    }
+	{
+		cv.GenerateID(): cv.declare_id(class_),
+		cv.Required(CONF_STREAM_SERVER): cv.use_id(StreamServerComponent),
+		cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_CONNECTIVITY): binary_sensor.device_class,
+		cv.Optional(CONF_ENTITY_CATEGORY, default=ENTITY_CATEGORY_DIAGNOSTIC): cv.entity_category,
+	}
 ).extend(cv.COMPONENT_SCHEMA)
 
 def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield binary_sensor.register_binary_sensor(var, config)
+	var = cg.new_Pvariable(config[CONF_ID])
+	yield cg.register_component(var, config)
+	yield binary_sensor.register_binary_sensor(var, config)
 
-    ss = yield cg.get_variable(config[CONF_STREAM_SERVER])
-    cg.add(var.set_stream_server(ss))
+	ss = yield cg.get_variable(config[CONF_STREAM_SERVER])
+	cg.add(var.set_stream_server(ss))
