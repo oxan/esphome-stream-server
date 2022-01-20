@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2021 Oxan van Leeuwen
+/* Copyright (C) 2020-2022 Oxan van Leeuwen
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,12 @@
 
 #include "stream_server.h"
 
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
 
 #include "esphome/components/network/util.h"
+#include "esphome/components/socket/socket.h"
 
 static const char *TAG = "streamserver";
 
@@ -27,30 +29,44 @@ using namespace esphome;
 
 void StreamServerComponent::setup() {
     ESP_LOGCONFIG(TAG, "Setting up stream server...");
-    this->recv_buf_.reserve(128);
 
-    this->server_ = AsyncServer(this->port_);
-    this->server_.begin();
-    this->server_.onClient([this](void *h, AsyncClient *tcpClient) {
-        if(tcpClient == nullptr)
-            return;
+    struct sockaddr_in bind_addr = {
+        .sin_len = sizeof(struct sockaddr_in),
+        .sin_family = AF_INET,
+        .sin_port = htons(this->port_),
+        .sin_addr = {
+            .s_addr = ESPHOME_INADDR_ANY,
+        }
+    };
 
-        this->clients_.push_back(std::unique_ptr<Client>(new Client(tcpClient, this->recv_buf_)));
-    }, this);
+    this->socket_ = socket::socket(AF_INET, SOCK_STREAM, PF_INET);
+    this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(struct sockaddr_in));
+    this->socket_->listen(8);
 }
 
 void StreamServerComponent::loop() {
-    this->cleanup();
+    this->accept();
     this->read();
     this->write();
+    this->cleanup();
+}
+
+void StreamServerComponent::accept() {
+    struct sockaddr_in client_addr;
+    socklen_t client_addrlen = sizeof(struct sockaddr_in);
+    std::unique_ptr<socket::Socket> socket = this->socket_->accept(reinterpret_cast<struct sockaddr *>(&client_addr), &client_addrlen);
+    if (!socket)
+        return;
+
+    socket->setblocking(false);
+    std::string identifier = socket->getpeername();
+    this->clients_.emplace_back(std::move(socket), identifier);
+    ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
 }
 
 void StreamServerComponent::cleanup() {
-    auto discriminator = [](std::unique_ptr<Client> &client) { return !client->disconnected; };
+    auto discriminator = [](const Client &client) { return !client.disconnected; };
     auto last_client = std::partition(this->clients_.begin(), this->clients_.end(), discriminator);
-    for (auto it = last_client; it != this->clients_.end(); it++)
-        ESP_LOGD(TAG, "Client %s disconnected", (*it)->identifier.c_str());
-
     this->clients_.erase(last_client, this->clients_.end());
 }
 
@@ -60,14 +76,24 @@ void StreamServerComponent::read() {
         char buf[128];
         len = std::min(len, 128);
         this->stream_->read_array(reinterpret_cast<uint8_t*>(buf), len);
-        for (auto const& client : this->clients_)
-            client->tcp_client->write(buf, len);
+        for (const Client &client : this->clients_)
+            client.socket->write(buf, len);
     }
 }
 
 void StreamServerComponent::write() {
-    this->stream_->write_array(this->recv_buf_);
-    this->recv_buf_.clear();
+    uint8_t buf[128];
+    ssize_t len;
+    for (Client &client : this->clients_) {
+        while ((len = client.socket->read(&buf, sizeof(buf))) > 0)
+            this->stream_->write_array(buf, len);
+
+        if (len == 0) {
+            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            client.disconnected = true;
+            continue;
+        }
+    }
 }
 
 void StreamServerComponent::dump_config() {
@@ -78,27 +104,11 @@ void StreamServerComponent::dump_config() {
 }
 
 void StreamServerComponent::on_shutdown() {
-    for (auto &client : this->clients_)
-        client->tcp_client->close(true);
+    for (const Client &client : this->clients_)
+        client.socket->shutdown(SHUT_RDWR);
 }
 
-StreamServerComponent::Client::Client(AsyncClient *client, std::vector<uint8_t> &recv_buf) :
-        tcp_client{client}, identifier{client->remoteIP().toString().c_str()}, disconnected{false} {
-    ESP_LOGD(TAG, "New client connected from %s", this->identifier.c_str());
-
-    this->tcp_client->onError(     [this](void *h, AsyncClient *client, int8_t error)  { this->disconnected = true; });
-    this->tcp_client->onDisconnect([this](void *h, AsyncClient *client)                { this->disconnected = true; });
-    this->tcp_client->onTimeout(   [this](void *h, AsyncClient *client, uint32_t time) { this->disconnected = true; });
-
-    this->tcp_client->onData([&](void *h, AsyncClient *client, void *data, size_t len) {
-        if (len == 0 || data == nullptr)
-            return;
-
-        auto buf = static_cast<uint8_t *>(data);
-        recv_buf.insert(recv_buf.end(), buf, buf + len);
-    }, nullptr);
-}
-
-StreamServerComponent::Client::~Client() {
-    delete this->tcp_client;
+StreamServerComponent::Client::Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier)
+    : socket(std::move(socket)), identifier{identifier}
+{
 }

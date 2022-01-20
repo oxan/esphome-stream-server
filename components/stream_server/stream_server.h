@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2021 Oxan van Leeuwen
+/* Copyright (C) 2020-2022 Oxan van Leeuwen
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,12 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/components/socket/socket.h"
 #include "esphome/components/uart/uart.h"
 
 #include <memory>
 #include <string>
 #include <vector>
-
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESPAsyncTCP.h>
-#else
-// AsyncTCP.h includes parts of freertos, which require FreeRTOS.h header to be included first
-#include <freertos/FreeRTOS.h>
-#include <AsyncTCP.h>
-#endif
 
 class StreamServerComponent : public esphome::Component {
 public:
@@ -47,22 +40,21 @@ public:
     void set_port(uint16_t port) { this->port_ = port; }
 
 protected:
+    void accept();
     void cleanup();
     void read();
     void write();
 
     struct Client {
-        Client(AsyncClient *client, std::vector<uint8_t> &recv_buf);
-        ~Client();
+        Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier);
 
-        AsyncClient *tcp_client{nullptr};
+        std::unique_ptr<esphome::socket::Socket> socket{nullptr};
         std::string identifier{};
         bool disconnected{false};
     };
 
     esphome::uart::UARTComponent *stream_{nullptr};
-    AsyncServer server_{0};
+    std::unique_ptr<esphome::socket::Socket> socket_{};
     uint16_t port_{6638};
-    std::vector<uint8_t> recv_buf_{};
-    std::vector<std::unique_ptr<Client>> clients_{};
+    std::vector<Client> clients_{};
 };
