@@ -23,20 +23,32 @@ from esphome.const import (
 	CONF_ENTITY_CATEGORY,
 	ENTITY_CATEGORY_DIAGNOSTIC,
 )
+from esphome.util import parse_esphome_version
 from . import ns, StreamServerComponent
 
 CONF_STREAM_SERVER = "stream_server"
 
 class_ = ns.class_("StreamServerBinarySensor", binary_sensor.BinarySensor, cg.Component)
 
-CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
+if parse_esphome_version() >= (2022, 3, 0):
+    CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(
+        device_class=DEVICE_CLASS_CONNECTIVITY,
+        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+    ).extend(
 	{
 		cv.GenerateID(): cv.declare_id(class_),
 		cv.Required(CONF_STREAM_SERVER): cv.use_id(StreamServerComponent),
-		cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_CONNECTIVITY): binary_sensor.device_class,
-		cv.Optional(CONF_ENTITY_CATEGORY, default=ENTITY_CATEGORY_DIAGNOSTIC): cv.entity_category,
 	}
-).extend(cv.COMPONENT_SCHEMA)
+    ).extend(cv.COMPONENT_SCHEMA)
+else:
+    CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
+        {
+                cv.GenerateID(): cv.declare_id(class_),
+                cv.Required(CONF_STREAM_SERVER): cv.use_id(StreamServerComponent),
+                cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_CONNECTIVITY): binary_sensor.device_class,
+                cv.Optional(CONF_ENTITY_CATEGORY, default=ENTITY_CATEGORY_DIAGNOSTIC): cv.entity_category,
+        }
+    ).extend(cv.COMPONENT_SCHEMA)
 
 def to_code(config):
 	var = cg.new_Pvariable(config[CONF_ID])
