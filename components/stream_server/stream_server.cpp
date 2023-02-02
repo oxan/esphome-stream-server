@@ -30,6 +30,9 @@ using namespace esphome;
 void StreamServerComponent::setup() {
     ESP_LOGCONFIG(TAG, "Setting up stream server...");
 
+    // The make_unique() wrapper doesn't like arrays, so initialize the unique_ptr directly.
+    this->buf_ = std::unique_ptr<uint8_t[]>{new uint8_t[this->buf_size_]};
+
     struct sockaddr_storage bind_addr;
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 
@@ -42,6 +45,7 @@ void StreamServerComponent::setup() {
 void StreamServerComponent::loop() {
     this->accept();
     this->read();
+    this->flush();
     this->write();
     this->cleanup();
 }
@@ -65,7 +69,7 @@ void StreamServerComponent::accept() {
 
     socket->setblocking(false);
     std::string identifier = socket->getpeername();
-    this->clients_.emplace_back(std::move(socket), identifier);
+    this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
 }
 
@@ -76,13 +80,41 @@ void StreamServerComponent::cleanup() {
 }
 
 void StreamServerComponent::read() {
-    int len;
-    while ((len = this->stream_->available()) > 0) {
-        char buf[128];
-        len = std::min(len, 128);
-        this->stream_->read_array(reinterpret_cast<uint8_t *>(buf), len);
-        for (const Client &client : this->clients_)
-            client.socket->write(buf, len);
+    bool first_iteration = true;
+    int available;
+    while ((available = this->stream_->available()) > 0) {
+        // Write until the tail is encountered, or wraparound of the ring buffer if that happens before.
+        size_t max = std::min(this->buf_ahead(this->buf_head_), this->buf_tail_ + this->buf_size_ - this->buf_head_);
+        if (max == 0) {
+            // Only warn on the first iteration, the finite buffer size is also used as a throttling mechanism to avoid
+            // blocking here for too long when a large amount of data comes in.
+            if (first_iteration)
+                ESP_LOGW(TAG, "Incoming bytes available in stream, but outgoing buffer is full!");
+            break;
+        }
+
+        size_t len = std::min<size_t>(available, max);
+        this->stream_->read_array(&this->buf_[this->buf_index(this->buf_head_)], len);
+        this->buf_head_ += len;
+        first_iteration = false;
+    }
+}
+
+void StreamServerComponent::flush() {
+    this->buf_tail_ = this->buf_head_;
+    for (Client &client : this->clients_) {
+        if (client.position == this->buf_head_)
+            continue;
+
+        // Split the write into two parts: from the current position to the end of the ring buffer, and from the start
+        // of the ring buffer until the head. The second part might be zero if no wraparound is necessary.
+        struct iovec iov[2];
+        iov[0].iov_base = &this->buf_[this->buf_index(client.position)];
+        iov[0].iov_len = std::min(this->buf_head_ - client.position, this->buf_ahead(client.position));
+        iov[1].iov_base = &this->buf_[0];
+        iov[1].iov_len = this->buf_head_ - (client.position + iov[0].iov_len);
+        client.position += client.socket->writev(iov, 2);
+        this->buf_tail_ = std::min(this->buf_tail_, client.position);
     }
 }
 
@@ -101,5 +133,5 @@ void StreamServerComponent::write() {
     }
 }
 
-StreamServerComponent::Client::Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier)
-    : socket(std::move(socket)), identifier{identifier} {}
+StreamServerComponent::Client::Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier, size_t position)
+    : socket(std::move(socket)), identifier{identifier}, position{position} {}

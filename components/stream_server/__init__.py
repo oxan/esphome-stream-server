@@ -16,7 +16,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart
-from esphome.const import CONF_ID, CONF_PORT
+from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
@@ -28,11 +28,21 @@ MULTI_CONF = True
 
 StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
 
+
+def validate_buffer_size(buffer_size):
+    if buffer_size & (buffer_size - 1) != 0:
+        raise cv.Invalid("Buffer size must be a power of two.")
+    return buffer_size
+
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(StreamServerComponent),
             cv.Optional(CONF_PORT): cv.port,
+            cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
+                cv.positive_int, validate_buffer_size
+            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -44,6 +54,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     if CONF_PORT in config:
         cg.add(var.set_port(config[CONF_PORT]))
+    cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
 
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
