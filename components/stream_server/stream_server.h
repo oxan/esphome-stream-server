@@ -61,6 +61,7 @@ protected:
     };
 
     esphome::uart::UARTComponent *stream_{nullptr};
+    uint16_t port_;
     size_t buf_size_;
 
     std::unique_ptr<uint8_t[]> buf_{};
@@ -68,6 +69,5 @@ protected:
     size_t buf_tail_{0};
 
     std::unique_ptr<esphome::socket::Socket> socket_{};
-    uint16_t port_{6638};
     std::vector<Client> clients_{};
 };

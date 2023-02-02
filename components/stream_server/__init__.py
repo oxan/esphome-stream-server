@@ -39,7 +39,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(StreamServerComponent),
-            cv.Optional(CONF_PORT): cv.port,
+            cv.Optional(CONF_PORT, default=6638): cv.port,
             cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
                 cv.positive_int, validate_buffer_size
             ),
@@ -52,8 +52,7 @@ CONFIG_SCHEMA = (
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    if CONF_PORT in config:
-        cg.add(var.set_port(config[CONF_PORT]))
+    cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
 
     await cg.register_component(var, config)
