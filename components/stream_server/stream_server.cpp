@@ -56,6 +56,9 @@ void StreamServerComponent::dump_config() {
 #ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
 #endif
+#ifdef USE_SENSOR
+    LOG_SENSOR("  ", "Connection count:", this->connection_count_sensor_);
+#endif
 }
 
 void StreamServerComponent::on_shutdown() {
@@ -67,6 +70,10 @@ void StreamServerComponent::publish_sensor() {
 #ifdef USE_BINARY_SENSOR
     if (this->connected_sensor_)
         this->connected_sensor_->publish_state(this->clients_.size() > 0);
+#endif
+#ifdef USE_SENSOR
+    if (this->connection_count_sensor_)
+        this->connection_count_sensor_->publish_state(this->clients_.size());
 #endif
 }
 

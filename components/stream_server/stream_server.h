@@ -23,6 +23,9 @@
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
+#ifdef USE_BINARY_SENSOR
+#include "esphome/components/sensor/sensor.h"
+#endif
 
 #include <memory>
 #include <string>
@@ -37,6 +40,9 @@ public:
 
 #ifdef USE_BINARY_SENSOR
     void set_connected_sensor(esphome::binary_sensor::BinarySensor *connected) { this->connected_sensor_ = connected; }
+#endif
+#ifdef USE_SENSOR
+    void set_connection_count_sensor(esphome::sensor::Sensor *connection_count) { this->connection_count_sensor_ = connection_count; }
 #endif
 
     void setup() override;
@@ -76,6 +82,9 @@ protected:
 
 #ifdef USE_BINARY_SENSOR
     esphome::binary_sensor::BinarySensor *connected_sensor_;
+#endif
+#ifdef USE_SENSOR
+    esphome::sensor::Sensor *connection_count_sensor_;
 #endif
 
     std::unique_ptr<uint8_t[]> buf_{};
