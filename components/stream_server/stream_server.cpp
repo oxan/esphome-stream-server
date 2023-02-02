@@ -23,7 +23,7 @@
 #include "esphome/components/network/util.h"
 #include "esphome/components/socket/socket.h"
 
-static const char *TAG = "streamserver";
+static const char *TAG = "stream_server";
 
 using namespace esphome;
 
@@ -51,6 +51,16 @@ void StreamServerComponent::loop() {
     this->cleanup();
 }
 
+void StreamServerComponent::dump_config() {
+    ESP_LOGCONFIG(TAG, "Stream Server:");
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_ip_address().str().c_str(), this->port_);
+}
+
+void StreamServerComponent::on_shutdown() {
+    for (const Client &client : this->clients_)
+        client.socket->shutdown(SHUT_RDWR);
+}
+
 void StreamServerComponent::accept() {
     struct sockaddr_in client_addr;
     socklen_t client_addrlen = sizeof(struct sockaddr_in);
@@ -75,7 +85,7 @@ void StreamServerComponent::read() {
     while ((len = this->stream_->available()) > 0) {
         char buf[128];
         len = std::min(len, 128);
-        this->stream_->read_array(reinterpret_cast<uint8_t*>(buf), len);
+        this->stream_->read_array(reinterpret_cast<uint8_t *>(buf), len);
         for (const Client &client : this->clients_)
             client.socket->write(buf, len);
     }
@@ -96,19 +106,5 @@ void StreamServerComponent::write() {
     }
 }
 
-void StreamServerComponent::dump_config() {
-    ESP_LOGCONFIG(TAG, "Stream Server:");
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u",
-                  esphome::network::get_ip_address().str().c_str(),
-                  this->port_);
-}
-
-void StreamServerComponent::on_shutdown() {
-    for (const Client &client : this->clients_)
-        client.socket->shutdown(SHUT_RDWR);
-}
-
 StreamServerComponent::Client::Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier)
-    : socket(std::move(socket)), identifier{identifier}
-{
-}
+    : socket(std::move(socket)), identifier{identifier} {}
