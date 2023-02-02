@@ -30,17 +30,11 @@ using namespace esphome;
 void StreamServerComponent::setup() {
     ESP_LOGCONFIG(TAG, "Setting up stream server...");
 
-    struct sockaddr_in bind_addr = {
-        .sin_len = sizeof(struct sockaddr_in),
-        .sin_family = AF_INET,
-        .sin_port = htons(this->port_),
-        .sin_addr = {
-            .s_addr = ESPHOME_INADDR_ANY,
-        }
-    };
+    struct sockaddr_storage bind_addr;
+    socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 
-    this->socket_ = socket::socket(AF_INET, SOCK_STREAM, PF_INET);
-    this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(struct sockaddr_in));
+    this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
+    this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
 }
 
@@ -62,8 +56,8 @@ void StreamServerComponent::on_shutdown() {
 }
 
 void StreamServerComponent::accept() {
-    struct sockaddr_in client_addr;
-    socklen_t client_addrlen = sizeof(struct sockaddr_in);
+    struct sockaddr_storage client_addr;
+    socklen_t client_addrlen = sizeof(client_addr);
     std::unique_ptr<socket::Socket> socket = this->socket_->accept(reinterpret_cast<struct sockaddr *>(&client_addr), &client_addrlen);
     if (!socket)
         return;
