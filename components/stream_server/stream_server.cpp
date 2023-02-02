@@ -53,11 +53,21 @@ void StreamServerComponent::loop() {
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);
+#ifdef USE_BINARY_SENSOR
+    LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
+#endif
 }
 
 void StreamServerComponent::on_shutdown() {
     for (const Client &client : this->clients_)
         client.socket->shutdown(SHUT_RDWR);
+}
+
+void StreamServerComponent::publish_sensor() {
+#ifdef USE_BINARY_SENSOR
+    if (this->connected_sensor_)
+        this->connected_sensor_->publish_state(this->clients_.size() > 0);
+#endif
 }
 
 void StreamServerComponent::accept() {
@@ -71,12 +81,16 @@ void StreamServerComponent::accept() {
     std::string identifier = socket->getpeername();
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
+    this->publish_sensor();
 }
 
 void StreamServerComponent::cleanup() {
     auto discriminator = [](const Client &client) { return !client.disconnected; };
     auto last_client = std::partition(this->clients_.begin(), this->clients_.end(), discriminator);
-    this->clients_.erase(last_client, this->clients_.end());
+    if (last_client != this->clients_.end()) {
+        this->clients_.erase(last_client, this->clients_.end());
+        this->publish_sensor();
+    }
 }
 
 void StreamServerComponent::read() {

@@ -26,7 +26,8 @@ DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
-StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
+ns = cg.global_ns
+StreamServerComponent = ns.class_("StreamServerComponent", cg.Component)
 
 
 def validate_buffer_size(buffer_size):
