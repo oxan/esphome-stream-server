@@ -52,7 +52,7 @@ void StreamServerComponent::loop() {
 
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_ip_address().str().c_str(), this->port_);
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);
 }
 
 void StreamServerComponent::on_shutdown() {
