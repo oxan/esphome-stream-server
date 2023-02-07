@@ -36,7 +36,8 @@ def validate_buffer_size(buffer_size):
     return buffer_size
 
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
+    cv.require_esphome_version(2022, 3, 0),
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(StreamServerComponent),
@@ -47,7 +48,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(uart.UART_DEVICE_SCHEMA)
+    .extend(uart.UART_DEVICE_SCHEMA),
 )
 
 
