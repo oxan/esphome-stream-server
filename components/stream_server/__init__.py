@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Oxan van Leeuwen
+# Copyright (C) 2021-2023 Oxan van Leeuwen
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,33 +16,46 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart
-from esphome.const import CONF_ID, CONF_PORT
+from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
-AUTO_LOAD = ["async_tcp"]
+AUTO_LOAD = ["socket"]
 
 DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
-StreamServerComponent = cg.global_ns.class_("StreamServerComponent", cg.Component)
+ns = cg.global_ns
+StreamServerComponent = ns.class_("StreamServerComponent", cg.Component)
 
-CONFIG_SCHEMA = (
-	cv.Schema(
-		{
-			cv.GenerateID(): cv.declare_id(StreamServerComponent),
-			cv.Optional(CONF_PORT): cv.port,
-		}
-	)
-		.extend(cv.COMPONENT_SCHEMA)
-		.extend(uart.UART_DEVICE_SCHEMA)
+
+def validate_buffer_size(buffer_size):
+    if buffer_size & (buffer_size - 1) != 0:
+        raise cv.Invalid("Buffer size must be a power of two.")
+    return buffer_size
+
+
+CONFIG_SCHEMA = cv.All(
+    cv.require_esphome_version(2022, 3, 0),
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(StreamServerComponent),
+            cv.Optional(CONF_PORT, default=6638): cv.port,
+            cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
+                cv.positive_int, validate_buffer_size
+            ),
+        }
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(uart.UART_DEVICE_SCHEMA),
 )
 
-def to_code(config):
-	var = cg.new_Pvariable(config[CONF_ID])
-	if CONF_PORT in config:
-		cg.add(var.set_port(config[CONF_PORT]))
 
-	yield cg.register_component(var, config)
-	yield uart.register_uart_device(var, config)
+async def to_code(config):
+    var = cg.new_Pvariable(config[CONF_ID])
+    cg.add(var.set_port(config[CONF_PORT]))
+    cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
+
+    await cg.register_component(var, config)
+    await uart.register_uart_device(var, config)
