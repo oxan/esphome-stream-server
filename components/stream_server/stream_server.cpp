@@ -40,6 +40,13 @@ void StreamServerComponent::setup() {
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
+
+#ifdef USE_BINARY_SENSOR
+    this->connected_sensor_->publish_state(false);
+#endif
+#ifdef USE_SENSOR
+    this->connection_count_sensor_->publish_state(0);
+#endif
 }
 
 void StreamServerComponent::loop() {
