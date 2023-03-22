@@ -126,7 +126,6 @@ void StreamServerComponent::read() {
                     client.position = this->buf_tail_;
                 }
             }
-
         }
 
         // Fill all available contiguous space in the ring buffer.
