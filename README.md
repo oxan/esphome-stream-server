@@ -50,3 +50,33 @@ sensor:
     connection_count:
       name: Number of connections
 ```
+
+Advanced
+--------
+It is possible to define multiple stream servers for multiple UARTs simultaneously:
+
+```yaml
+uart:
+  - id: uart1
+    # ...
+  - id: uart2
+    # ...
+
+stream_server:
+  - uart_id: uart1
+    port: 1234
+  - uart_id: uart2
+    port: 1235
+```
+
+The stream server has an internal buffer into which UART data is read before it is transmitted over TCP. The size of
+this buffer can be changed using the `buffer_size` option, and must be a power of two. Increasing the buffer size above
+the default of 128 bytes can help to achieve optimal throughput, and is especially helpful when using high baudrates. It
+can also be necessary to increase the [`rx_buffer_size`][uart-config] option of the UART itself.
+
+```yaml
+stream_server:
+    buffer_size: 2048
+```
+
+[uart-config]: https://esphome.io/components/uart.html#configuration-variables
