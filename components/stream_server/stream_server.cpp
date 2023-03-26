@@ -115,9 +115,10 @@ void StreamServerComponent::read() {
 }
 
 void StreamServerComponent::flush() {
+    ssize_t written;
     this->buf_tail_ = this->buf_head_;
     for (Client &client : this->clients_) {
-        if (client.position == this->buf_head_)
+        if (client.disconnected || client.position == this->buf_head_)
             continue;
 
         // Split the write into two parts: from the current position to the end of the ring buffer, and from the start
@@ -127,22 +128,39 @@ void StreamServerComponent::flush() {
         iov[0].iov_len = std::min(this->buf_head_ - client.position, this->buf_ahead(client.position));
         iov[1].iov_base = &this->buf_[0];
         iov[1].iov_len = this->buf_head_ - (client.position + iov[0].iov_len);
-        client.position += client.socket->writev(iov, 2);
+        if ((written = client.socket->writev(iov, 2)) > 0) {
+            client.position += written;
+        } else if (written == 0 || errno == ECONNRESET) {
+            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            client.disconnected = true;
+            continue;  // don't consider this client when calculating the tail position
+        } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            // Expected if the (TCP) transmit buffer is full, nothing to do.
+        } else {
+            ESP_LOGE(TAG, "Failed to write to client %s with error %d!", client.identifier.c_str(), errno);
+        }
+
         this->buf_tail_ = std::min(this->buf_tail_, client.position);
     }
 }
 
 void StreamServerComponent::write() {
     uint8_t buf[128];
-    ssize_t len;
+    ssize_t read;
     for (Client &client : this->clients_) {
-        while ((len = client.socket->read(&buf, sizeof(buf))) > 0)
-            this->stream_->write_array(buf, len);
+        if (client.disconnected)
+            continue;
 
-        if (len == 0) {
+        while ((read = client.socket->read(&buf, sizeof(buf))) > 0)
+            this->stream_->write_array(buf, read);
+
+        if (read == 0 || errno == ECONNRESET) {
             ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
-            continue;
+        } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            // Expected if the (TCP) receive buffer is empty, nothing to do.
+        } else {
+            ESP_LOGW(TAG, "Failed to read from client %s with error %d!", client.identifier.c_str(), errno);
         }
     }
 }
