@@ -3,6 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
+#include "esphome/core/version.h"
 
 #include "esphome/components/network/util.h"
 #include "esphome/components/socket/socket.h"
@@ -18,7 +19,11 @@ void StreamServerComponent::setup() {
     this->buf_ = std::unique_ptr<uint8_t[]>{new uint8_t[this->buf_size_]};
 
     struct sockaddr_storage bind_addr;
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2023, 4, 0)
+    socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), this->port_);
+#else
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
+#endif
 
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
     this->socket_->setblocking(false);
