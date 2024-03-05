@@ -6,6 +6,7 @@ from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
 AUTO_LOAD = ["socket"]
+CONF_BANNER = "banner"
 
 DEPENDENCIES = ["uart", "network"]
 
@@ -30,6 +31,9 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
                 cv.positive_int, validate_buffer_size
             ),
+            cv.Optional(CONF_BANNER): cv.All(
+                cv.string
+            )
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -41,6 +45,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
-
+    if CONF_BANNER in config:
+        cg.add(var.set_banner(config[CONF_BANNER]))
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)

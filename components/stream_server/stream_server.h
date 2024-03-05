@@ -29,6 +29,8 @@ public:
     void set_connection_count_sensor(esphome::sensor::Sensor *connection_count) { this->connection_count_sensor_ = connection_count; }
 #endif
 
+    void set_banner(const char *banner) { this->banner_ = banner; };
+
     void setup() override;
     void loop() override;
     void dump_config() override;
@@ -63,6 +65,7 @@ protected:
     esphome::uart::UARTComponent *stream_{nullptr};
     uint16_t port_;
     size_t buf_size_;
+    const char *banner_ = NULL;
 
 #ifdef USE_BINARY_SENSOR
     esphome::binary_sensor::BinarySensor *connected_sensor_;
