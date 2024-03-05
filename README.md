@@ -31,6 +31,20 @@ stream_server:
    port: 1234
 ```
 
+Welcome/MOTD Message
+--------------------
+
+The optional 'banner' property allows to specify a string text to be always sent to client upon connecting.
+This is very useful for things like always forcing telnet client into character mode.
+Example: 
+
+```yaml
+stream_server:
+  banner: "\xFF\xFB\x01\xFF\xFB\x03\xFF\xFC\x34\r\nWelcome to my console"
+```
+
+The example above sends a special sequence to telnet that disables local echo and enables character mode.
+
 Sensors
 -------
 The server provides a binary sensor that signals whether there currently is a client connected:
