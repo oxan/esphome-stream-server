@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/socket/socket.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/network/ip_address.h"
 
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
@@ -37,6 +38,13 @@ public:
     float get_setup_priority() const override { return esphome::setup_priority::AFTER_WIFI; }
 
     void set_port(uint16_t port) { this->port_ = port; }
+    void set_whitelist(const std::vector<esphome::network::IPAddress> &whitelist) {this->whitelist_ = whitelist;}
+
+ private:
+    std::vector<esphome::network::IPAddress> whitelist_;
+    bool is_ip_whitelisted(esphome::network::IPAddress ip);
+    bool is_whitelist_empty();
+    void log_whitelist();
 
 protected:
     void publish_sensor();

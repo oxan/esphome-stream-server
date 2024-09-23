@@ -14,7 +14,7 @@ Requires ESPHome v2022.3.0 or newer.
 
 ```yaml
 external_components:
-  - source: github://oxan/esphome-stream-server
+  - source: github://wolffshots/esphome-stream-server
 
 stream_server:
 ```
@@ -80,3 +80,38 @@ stream_server:
 ```
 
 [uart-config]: https://esphome.io/components/uart.html#configuration-variables
+
+The original project from [oxan](https://github.com/oxan) has been extended to include a whitelist of IPs that the 
+server will connect to. This is not an ironclad protection against ne'er-do-wells but increases the barrier to entry for
+messing with your serial devices.
+
+One similar thing you could do is a similar change to add a "signing" field to the config so IPs need to do something extra to connect but that is out of scope for my changes.
+
+To include a whitelist you would do the following:
+```yaml
+uart:
+   id: uart_bus
+
+stream_server:
+   uart_id: uart_bus
+   port: 1234
+  whitelist:
+    - 192.168.1.100
+    - 192.168.1.102
+```
+
+If you want to debug why it wouldn't be connecting then you can enable debug logs with
+
+```yaml
+logger:
+  baud_rate: 0
+  level: debug
+```
+
+And then when a device attempts to connect and is denied you should see a log like this from the component:
+```
+[W][stream_server:090]: Client 192.168.1.105 is not whitelisted and will be disconnected.
+[D][stream_server:072]: Current whitelist is:
+[D][stream_server:074]: 	'192.168.1.101'
+[D][stream_server:074]: 	'192.168.1.102'
+```
