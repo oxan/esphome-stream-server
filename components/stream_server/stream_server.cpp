@@ -138,6 +138,18 @@ void StreamServerComponent::read() {
         // Fill all available contiguous space in the ring buffer.
         len = std::min<size_t>(available, std::min<size_t>(this->buf_ahead(this->buf_head_), free));
         this->stream_->read_array(&this->buf_[this->buf_index(this->buf_head_)], len);
+
+        // Debug log the serial data
+        std::string hex_rep;
+        std::string char_rep;
+        for (size_t i = 0; i < len; i++) {
+            char buf[4];
+            sprintf(buf, "%02X ", this->buf_[this->buf_index(this->buf_head_) + i]);
+            hex_rep += buf;
+            char_rep += isprint(this->buf_[this->buf_index(this->buf_head_) + i]) ? this->buf_[this->buf_index(this->buf_head_) + i] : '.';
+        }
+        ESP_LOGD(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+
         this->buf_head_ += len;
     }
 }
@@ -181,8 +193,20 @@ void StreamServerComponent::write() {
         if (client.disconnected || !is_ip_whitelisted(client_ip))
             continue;
 
-        while ((read = client.socket->read(&buf, sizeof(buf))) > 0)
+        while ((read = client.socket->read(&buf, sizeof(buf))) > 0) {
             this->stream_->write_array(buf, read);
+
+            // Debug log out IP traffic
+            std::string hex_rep;
+            std::string char_rep;
+            for (size_t i = 0; i < (size_t)read; i++) {
+                char temp[4];
+                sprintf(temp, "%02X ", buf[i]);
+                hex_rep += temp;
+                char_rep += isprint(buf[i]) ? buf[i] : '.';
+            }
+            ESP_LOGD(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+        }
 
         if (read == 0 || errno == ECONNRESET) {
             ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
