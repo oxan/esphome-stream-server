@@ -33,7 +33,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
                 cv.positive_int, validate_buffer_size
             ),
-            cv.Optional(CONF_WHITELIST, default=[]): cv.ensure_list(cv.ipv4),
+            cv.Optional(CONF_WHITELIST, default=[]): cv.ensure_list(cv.ipv4address),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -57,5 +57,5 @@ async def to_code(config):
     if CONF_WHITELIST in config:
         whitelist = []
         for ip in config[CONF_WHITELIST]:
-            whitelist.append(IPAddress(*ip.args))
+            whitelist.append(IPAddress(str(ip)))
         cg.add(var.set_whitelist(whitelist))
