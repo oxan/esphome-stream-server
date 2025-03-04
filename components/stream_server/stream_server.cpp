@@ -69,9 +69,9 @@ void StreamServerComponent::publish_sensor() {
 }
 
 void StreamServerComponent::log_whitelist() {
-    ESP_LOGD(TAG, "Current whitelist is:");
+    ESP_LOGI(TAG, "Current whitelist is:");
     for (const auto &ip : this->whitelist_) {
-        ESP_LOGD(TAG, "\t'%s'", ip.str().c_str());
+        ESP_LOGI(TAG, "\t'%s'", ip.str().c_str());
     }
 }
 
@@ -97,9 +97,9 @@ void StreamServerComponent::accept() {
 
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     if( is_whitelist_empty() ){
-        ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
+        ESP_LOGI(TAG, "New client connected from %s", identifier.c_str());
     } else {
-        ESP_LOGD(TAG, "New whitelisted client connected from %s", identifier.c_str());
+        ESP_LOGI(TAG, "New whitelisted client connected from %s", identifier.c_str());
     }
     
     this->publish_sensor();
@@ -172,7 +172,7 @@ void StreamServerComponent::flush() {
         if ((written = client.socket->writev(iov, 2)) > 0) {
             client.position += written;
         } else if (written == 0 || errno == ECONNRESET) {
-            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            ESP_LOGI(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
             continue;  // don't consider this client when calculating the tail position
         } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -209,7 +209,7 @@ void StreamServerComponent::write() {
         }
 
         if (read == 0 || errno == ECONNRESET) {
-            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            ESP_LOGI(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
         } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
             // Expected if the (TCP) receive buffer is empty, nothing to do.
