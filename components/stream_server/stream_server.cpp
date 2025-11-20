@@ -72,6 +72,13 @@ void StreamServerComponent::publish_sensor() {
 #endif
 }
 
+void StreamServerComponent::log_whitelist() {
+    ESP_LOGI(TAG, "Current whitelist is:");
+    for (const auto &ip : this->whitelist_) {
+        ESP_LOGI(TAG, "\t'%s'", ip.str().c_str());
+    }
+}
+
 void StreamServerComponent::accept() {
     struct sockaddr_storage client_addr;
     socklen_t client_addrlen = sizeof(client_addr);
@@ -81,8 +88,24 @@ void StreamServerComponent::accept() {
 
     socket->setblocking(false);
     std::string identifier = socket->getpeername();
+    esphome::network::IPAddress client_ip(identifier);
+
+    if (!is_ip_whitelisted(client_ip)) {
+        ESP_LOGW(TAG, "Client %s is not whitelisted and will be disconnected.", identifier.c_str());
+        #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
+            log_whitelist();
+        #endif
+        socket->shutdown(SHUT_RDWR); // Disconnect non-whitelisted client
+        return;
+    }
+
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
-    ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
+    if( is_whitelist_empty() ){
+        ESP_LOGI(TAG, "New client connected from %s", identifier.c_str());
+    } else {
+        ESP_LOGI(TAG, "New whitelisted client connected from %s", identifier.c_str());
+    }
+    
     this->publish_sensor();
 }
 
@@ -119,6 +142,18 @@ void StreamServerComponent::read() {
         // Fill all available contiguous space in the ring buffer.
         len = std::min<size_t>(available, std::min<size_t>(this->buf_ahead(this->buf_head_), free));
         this->stream_->read_array(&this->buf_[this->buf_index(this->buf_head_)], len);
+
+        // Debug log the serial data
+        std::string hex_rep;
+        std::string char_rep;
+        for (size_t i = 0; i < len; i++) {
+            char buf[4];
+            sprintf(buf, "%02X ", this->buf_[this->buf_index(this->buf_head_) + i]);
+            hex_rep += buf;
+            char_rep += isprint(this->buf_[this->buf_index(this->buf_head_) + i]) ? this->buf_[this->buf_index(this->buf_head_) + i] : '.';
+        }
+        ESP_LOGD(TAG, "Serial data read (%u bytes): %s (%s)", len, hex_rep.c_str(), char_rep.c_str());
+
         this->buf_head_ += len;
     }
 }
@@ -127,7 +162,8 @@ void StreamServerComponent::flush() {
     ssize_t written;
     this->buf_tail_ = this->buf_head_;
     for (Client &client : this->clients_) {
-        if (client.disconnected || client.position == this->buf_head_)
+        esphome::network::IPAddress client_ip(client.identifier); // Should not be connected but double check whitelist
+        if (client.disconnected || client.position == this->buf_head_ || !is_ip_whitelisted(client_ip))
             continue;
 
         // Split the write into two parts: from the current position to the end of the ring buffer, and from the start
@@ -140,7 +176,7 @@ void StreamServerComponent::flush() {
         if ((written = client.socket->writev(iov, 2)) > 0) {
             client.position += written;
         } else if (written == 0 || errno == ECONNRESET) {
-            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            ESP_LOGI(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
             continue;  // don't consider this client when calculating the tail position
         } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -157,14 +193,27 @@ void StreamServerComponent::write() {
     uint8_t buf[128];
     ssize_t read;
     for (Client &client : this->clients_) {
-        if (client.disconnected)
+        esphome::network::IPAddress client_ip(client.identifier); // Should not be connected but double check whitelist
+        if (client.disconnected || !is_ip_whitelisted(client_ip))
             continue;
 
-        while ((read = client.socket->read(&buf, sizeof(buf))) > 0)
+        while ((read = client.socket->read(&buf, sizeof(buf))) > 0) {
             this->stream_->write_array(buf, read);
 
+            // Debug log out IP traffic
+            std::string hex_rep;
+            std::string char_rep;
+            for (size_t i = 0; i < (size_t)read; i++) {
+                char temp[4];
+                sprintf(temp, "%02X ", buf[i]);
+                hex_rep += temp;
+                char_rep += isprint(buf[i]) ? buf[i] : '.';
+            }
+            ESP_LOGD(TAG, "IP data from %s (%zd bytes): %s (%s)", client.identifier.c_str(), read, hex_rep.c_str(), char_rep.c_str());
+        }
+
         if (read == 0 || errno == ECONNRESET) {
-            ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
+            ESP_LOGI(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
         } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
             // Expected if the (TCP) receive buffer is empty, nothing to do.
@@ -172,6 +221,27 @@ void StreamServerComponent::write() {
             ESP_LOGW(TAG, "Failed to read from client %s with error %d!", client.identifier.c_str(), errno);
         }
     }
+}
+
+bool StreamServerComponent::is_whitelist_empty() {
+    if (this->whitelist_.empty()) {
+        return true;
+    }
+    return false;
+}
+
+bool StreamServerComponent::is_ip_whitelisted(esphome::network::IPAddress ip) {
+    // default behaviour is still allow all
+    if (this->is_whitelist_empty()) {
+        return true;
+    }
+
+    for (const auto &allowed_ip : this->whitelist_) {
+        if (ip == allowed_ip) {
+        return true;
+        }
+    }
+    return false;
 }
 
 StreamServerComponent::Client::Client(std::unique_ptr<esphome::socket::Socket> socket, std::string identifier, size_t position)
