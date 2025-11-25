@@ -79,7 +79,12 @@ void StreamServerComponent::accept() {
     if (!socket)
         return;
 
+    if (banner_ && strlen(banner_)) {
+        socket->write(banner_, strlen(banner_));
+    }
+
     socket->setblocking(false);
+
     std::string identifier = socket->getpeername();
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
