@@ -44,3 +44,7 @@ async def to_code(config):
 
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 12, 0)
+    uart.request_wake_loop_on_rx()
+#endif
