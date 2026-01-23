@@ -19,16 +19,45 @@ void StreamServerComponent::setup() {
     this->buf_ = std::unique_ptr<uint8_t[]>{new uint8_t[this->buf_size_]};
 
     struct sockaddr_storage bind_addr;
+
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2023, 4, 0)
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), this->port_);
 #else
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 #endif
+    if (bind_addrlen == 0) {
+      ESP_LOGE(TAG, "Socket unable to set sockaddr: errno %d", errno);
+      this->mark_failed();
+      return;
+    }
 
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
-    this->socket_->setblocking(false);
-    this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
-    this->socket_->listen(8);
+    if (this->socket_ == nullptr) {
+      ESP_LOGE(TAG, "Could not create socket.");
+      this->mark_failed();
+      return;
+    }
+
+    int err = this->socket_->setblocking(false);
+    if (err != 0) {
+      ESP_LOGE(TAG, "Socket unable to set nonblocking mode: errno %d", err);
+      this->mark_failed();
+      return;
+    }
+
+    err = this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
+    if (err != 0) {
+      ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+      this->mark_failed();
+      return;
+    }
+
+    err = this->socket_->listen(8);
+    if (err != 0) {
+      ESP_LOGE(TAG, "Socket unable to listen: errno %d", errno);
+      this->mark_failed();
+      return;
+    }
 
     this->publish_sensor();
 }
