@@ -25,7 +25,7 @@ void StreamServerComponent::setup() {
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 #endif
 
-    this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
+    this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0).release();
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
