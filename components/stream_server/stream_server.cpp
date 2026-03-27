@@ -25,7 +25,12 @@ void StreamServerComponent::setup() {
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
 #endif
 
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)    
+    this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, PF_INET).release();    
+#else
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
+#endif 
+      
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
@@ -57,6 +62,11 @@ void StreamServerComponent::dump_config() {
 }
 
 void StreamServerComponent::on_shutdown() {
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
+    delete this->socket_;
+    this->socket_ = nullptr;    
+#endif 
+
     for (const Client &client : this->clients_)
         client.socket->shutdown(SHUT_RDWR);
 }
