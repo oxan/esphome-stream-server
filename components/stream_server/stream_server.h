@@ -1,5 +1,6 @@
 #pragma once
 
+#include "esphome/core/version.h"
 #include "esphome/core/component.h"
 #include "esphome/components/socket/socket.h"
 #include "esphome/components/uart/uart.h"
