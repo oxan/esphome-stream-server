@@ -1,6 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart
+from esphome.components import socket
 from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
 from esphome.util import parse_esphome_version
 
@@ -14,6 +15,12 @@ MULTI_CONF = True
 
 ns = cg.global_ns
 StreamServerComponent = ns.class_("StreamServerComponent", cg.Component)
+
+
+def _consume_stream_server_sockets(config):
+    # Each instance needs minimum 2 sockets (1 listener + 1 clients)
+    socket.consume_sockets(2, f"stream_server_{config[CONF_ID]}")(config)
+    return config
 
 
 def validate_buffer_size(buffer_size):
@@ -35,6 +42,7 @@ CONFIG_SCHEMA = cv.All(
     )
     .extend(cv.COMPONENT_SCHEMA)
     .extend(uart.UART_DEVICE_SCHEMA),
+    _consume_stream_server_sockets,
 )
 
 
