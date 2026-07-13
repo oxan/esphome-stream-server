@@ -22,6 +22,7 @@ public:
     explicit StreamServerComponent(esphome::uart::UARTComponent *stream) : stream_{stream} {}
     void set_uart_parent(esphome::uart::UARTComponent *parent) { this->stream_ = parent; }
     void set_buffer_size(size_t size) { this->buf_size_ = size; }
+    void set_read_only_with_clients(bool read_only_with_clients) { this->read_only_with_clients_ = read_only_with_clients; }
 
 #ifdef USE_BINARY_SENSOR
     void set_connected_sensor(esphome::binary_sensor::BinarySensor *connected) { this->connected_sensor_ = connected; }
@@ -64,6 +65,7 @@ protected:
     esphome::uart::UARTComponent *stream_{nullptr};
     uint16_t port_;
     size_t buf_size_;
+    bool read_only_with_clients_{false};
 
 #ifdef USE_BINARY_SENSOR
     esphome::binary_sensor::BinarySensor *connected_sensor_;

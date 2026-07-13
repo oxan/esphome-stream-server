@@ -12,6 +12,8 @@ DEPENDENCIES = ["uart", "network"]
 
 MULTI_CONF = True
 
+CONF_READ_ONLY_WITH_CLIENTS = "read_only_with_clients"
+
 ns = cg.global_ns
 StreamServerComponent = ns.class_("StreamServerComponent", cg.Component)
 
@@ -31,6 +33,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BUFFER_SIZE, default=128): cv.All(
                 cv.positive_int, validate_buffer_size
             ),
+            cv.Optional(CONF_READ_ONLY_WITH_CLIENTS, default=False): cv.boolean,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -42,6 +45,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
+    cg.add(var.set_read_only_with_clients(config[CONF_READ_ONLY_WITH_CLIENTS]))
 
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)

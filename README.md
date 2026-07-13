@@ -79,4 +79,14 @@ stream_server:
     buffer_size: 2048
 ```
 
+By default the stream server continuously drains the UART, even while no TCP client is connected. If another component
+shares the same UART (for example an alarm panel or heat pump integration that should keep polling the bus until a
+client connects for passthrough access), set the `read_only_with_clients` option to leave the UART untouched while no
+clients are connected:
+
+```yaml
+stream_server:
+    read_only_with_clients: true
+```
+
 [uart-config]: https://esphome.io/components/uart.html#configuration-variables

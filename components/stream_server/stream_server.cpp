@@ -114,6 +114,11 @@ void StreamServerComponent::cleanup() {
 }
 
 void StreamServerComponent::read() {
+    // Leave the UART untouched while no clients are connected, so other components
+    // sharing the bus can keep consuming it.
+    if (this->read_only_with_clients_ && this->clients_.empty())
+        return;
+
     size_t len = 0;
     int available;
     while ((available = this->stream_->available()) > 0) {
