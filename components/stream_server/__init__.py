@@ -2,7 +2,6 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import uart
 from esphome.const import CONF_ID, CONF_PORT, CONF_BUFFER_SIZE
-from esphome.util import parse_esphome_version
 
 # ESPHome doesn't know the Stream abstraction yet, so hardcode to use a UART for now.
 
@@ -46,6 +45,10 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    esphome_version = parse_esphome_version()
-    if (2025, 12, 0) <= esphome_version < (2026, 3, 0):
+    # Only ESPHome 2025.12 through 2026.2 has this: it was introduced there and
+    # replaced by the socket wake infrastructure in 2026.3. Probing for the symbol
+    # expresses that exactly, and avoids parse_esphome_version() (deprecated, and
+    # removed in 2027.2) - cv.require_esphome_version() is no help here since it
+    # gates a minimum version rather than a bounded range.
+    if hasattr(uart, "request_wake_loop_on_rx"):
         uart.request_wake_loop_on_rx()
