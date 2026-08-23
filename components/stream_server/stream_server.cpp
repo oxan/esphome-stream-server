@@ -160,7 +160,11 @@ void StreamServerComponent::flush() {
         iov[1].iov_len = this->buf_head_ - (client.position + iov[0].iov_len);
         if ((written = client.socket->writev(iov, 2)) > 0) {
             client.position += written;
-        } else if (written == 0 || errno == ECONNRESET) {
+        } else if (written == 0 || errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE) {
+            // A peer that vanished without sending a FIN (link loss, killed client) surfaces as
+            // ENOTCONN or EPIPE rather than ECONNRESET. Without treating those as a disconnect the
+            // client is never reaped, and the buf_tail_ update below keeps pinning the ring buffer
+            // to its frozen position, which stalls the buffer for every other client as well.
             ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
             continue;  // don't consider this client when calculating the tail position
@@ -184,7 +188,7 @@ void StreamServerComponent::write() {
         while ((read = client.socket->read(&buf, sizeof(buf))) > 0)
             this->stream_->write_array(buf, read);
 
-        if (read == 0 || errno == ECONNRESET) {
+        if (read == 0 || errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE) {
             ESP_LOGD(TAG, "Client %s disconnected", client.identifier.c_str());
             client.disconnected = true;
         } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
